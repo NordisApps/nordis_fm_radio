@@ -6,7 +6,7 @@ class RadioEventListener(
     private val onStationNameReceived: (String) -> Unit,
     private val onRadioTextReceived: (String) -> Unit,
     private val onRdsCleared: () -> Unit,
-    private val onScanStarted: () -> Unit,
+    private val onScanStartedCallback: () -> Unit,
     private val onChannelFound: (Double) -> Unit,
     private val onScanFinished: () -> Unit,
     private val onScanStopped: (List<Double>) -> Unit
@@ -37,7 +37,7 @@ class RadioEventListener(
 
     override fun onScanStarted() {
         Log.d("FMTEST", "SCAN STARTED")
-        onScanStarted()
+        onScanStartedCallback()
     }
 
     override fun onChannelFound(freq: Long) {

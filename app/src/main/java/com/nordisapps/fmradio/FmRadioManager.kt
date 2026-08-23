@@ -31,7 +31,7 @@ class FmRadioManager(context: Context) {
         onStationNameReceived = { onStationNameReceived?.invoke(it) },
         onRadioTextReceived = { onRadioTextReceived?.invoke(it) },
         onRdsCleared = { onRdsCleared?.invoke() },
-        onScanStarted = { onScanStarted?.invoke() },
+        onScanStartedCallback = { onScanStarted?.invoke() },
         onChannelFound = { onChannelFound?.invoke(it) },
         onScanFinished = { onScanFinished?.invoke() },
         onScanStopped = { onScanStopped?.invoke(it) }
