@@ -150,6 +150,7 @@ class FmRadioRecorder {
                 put(MediaStore.Audio.Media.IS_PENDING, 0)
             }
             context.contentResolver.update(uri, values, null, null)
+            AudioGainProcessor.boostVolume(context, uri)
         }
         currentRecordingUri = null
         currentRecordingFile = null

@@ -299,7 +299,11 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onRecordStopClick() {
-        fmRadioRecorder.stopRecording(getApplication())
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                fmRadioRecorder.stopRecording(getApplication())
+            }
+        }
         updateRecording(false)
         updateRecordingPaused(false)
     }
