@@ -20,4 +20,6 @@ interface IFMEventListener : IInterface {
     fun onScanStopped(freqs: LongArray)
 
     fun onTuned(freq: Long)
+
+    fun onHeadsetDisconnected()
 }

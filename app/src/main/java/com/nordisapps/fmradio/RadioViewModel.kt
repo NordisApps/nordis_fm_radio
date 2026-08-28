@@ -33,6 +33,26 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
         loadPersistedStations()
     }
 
+    private fun checkReadiness(): RadioReadiness {
+        if (!radioManager.isServiceAvailable()) {
+            return RadioReadiness.ServiceUnavailable
+        }
+        if (!radioManager.isHeadsetConnected()) {
+            return RadioReadiness.HeadsetRequired
+        }
+        return RadioReadiness.Ready
+    }
+
+    private fun RadioReadiness.toMessage(): String? = when (this) {
+        RadioReadiness.Ready -> null
+        RadioReadiness.ServiceUnavailable -> "FM-радио не поддерживается на этом устройстве"
+        RadioReadiness.HeadsetRequired -> "Подключите наушники для приёма FM-радио"
+    }
+
+    fun clearReadinessMessage() {
+        uiState = uiState.copy(readinessMessage = null)
+    }
+
     private fun setupRadioCallbacks() {
         radioManager.onStationNameReceived = { updateStationName(it) }
         radioManager.onRdsCleared = { clearRds() }
@@ -59,6 +79,17 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
         radioManager.onScanStopped = { stations ->
             updateScanning(false)
             updateScannedStations(stations)
+        }
+
+        radioManager.onHeadsetDisconnected = {
+            viewModelScope.launch(Dispatchers.Main) {
+                updatePlaying(false)
+                clearRds()
+                getApplication<Application>().stopService(
+                    Intent(getApplication(), FmRadioForegroundService::class.java)
+                )
+                uiState = uiState.copy(readinessMessage = "Наушники отключены — радио остановлено")
+            }
         }
     }
 
@@ -240,6 +271,12 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
                     Intent(getApplication(), FmRadioForegroundService::class.java)
                 )
             } else {
+                val readiness = withContext(Dispatchers.IO) { checkReadiness() }
+                val message = readiness.toMessage()
+                if (message != null) {
+                    uiState = uiState.copy(readinessMessage = message)
+                    return@launch
+                }
                 val frequency = uiState.currentFrequency.toDoubleOrNull() ?: 87.5
                 val tuned = withContext(Dispatchers.IO) {
                     radioManager.play()

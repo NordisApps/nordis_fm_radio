@@ -9,7 +9,8 @@ class RadioEventListener(
     private val onScanStartedCallback: () -> Unit,
     private val onChannelFound: (Double) -> Unit,
     private val onScanFinished: () -> Unit,
-    private val onScanStopped: (List<Double>) -> Unit
+    private val onScanStopped: (List<Double>) -> Unit,
+    private val onHeadsetDisconnectedCallback: () -> Unit
 ) : FMEventListener() {
     private var lastTunedFreq: Long = -1L
 
@@ -53,5 +54,10 @@ class RadioEventListener(
     override fun onScanStopped(freqs: LongArray) {
         Log.d("FMTEST", "SCAN STOPPED: ${freqs.toList()}")
         onScanStopped(freqs.map { it / 1000.0 })
+    }
+
+    override fun onHeadsetDisconnected() {
+        Log.d("FMTEST", "HEADSET DISCONNECTED")
+        onHeadsetDisconnectedCallback()
     }
 }

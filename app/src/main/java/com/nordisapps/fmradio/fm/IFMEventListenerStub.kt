@@ -17,6 +17,7 @@ abstract class IFMEventListenerStub :
         const val TRANSACTION_ON_SCAN_FINISHED = 6
         const val TRANSACTION_ON_TUNED = 7
         const val TRANSACTION_ON_RDS_RECEIVED = 10
+        const val TRANSACTION_ON_HEADSET_DISCONNECTED = 9
     }
 
     init {
@@ -93,6 +94,11 @@ abstract class IFMEventListenerStub :
                     channelName,
                     radioText
                 )
+                return true
+            }
+
+            TRANSACTION_ON_HEADSET_DISCONNECTED -> {
+                onHeadsetDisconnected()
                 return true
             }
         }

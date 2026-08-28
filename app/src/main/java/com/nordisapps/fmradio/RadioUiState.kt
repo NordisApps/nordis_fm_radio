@@ -1,6 +1,7 @@
 package com.nordisapps.fmradio
 
 data class RadioUiState(
+    val readinessMessage: String? = null,
     val stationName: String = "",
     val radioText: String = "",
     val currentFrequency: String = "",

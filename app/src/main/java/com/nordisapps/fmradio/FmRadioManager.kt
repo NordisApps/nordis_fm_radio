@@ -27,6 +27,7 @@ class FmRadioManager(context: Context) {
     var onChannelFound: ((Double) -> Unit)? = null
     var onScanFinished: (() -> Unit)? = null
     var onScanStopped: ((List<Double>) -> Unit)? = null
+    var onHeadsetDisconnected: (() -> Unit)? = null
     private val listener = RadioEventListener(
         onStationNameReceived = { onStationNameReceived?.invoke(it) },
         onRadioTextReceived = { onRadioTextReceived?.invoke(it) },
@@ -34,7 +35,12 @@ class FmRadioManager(context: Context) {
         onScanStartedCallback = { onScanStarted?.invoke() },
         onChannelFound = { onChannelFound?.invoke(it) },
         onScanFinished = { onScanFinished?.invoke() },
-        onScanStopped = { onScanStopped?.invoke(it) }
+        onScanStopped = { onScanStopped?.invoke(it) },
+        onHeadsetDisconnectedCallback = {
+            Log.d("FmRadioManager", "HEADSET DISCONNECTED - stopping radio")
+            stop()
+            onHeadsetDisconnected?.invoke()
+        }
     )
 
     @Suppress("SameParameterValue")
@@ -44,6 +50,22 @@ class FmRadioManager(context: Context) {
         } catch (e: Exception) {
             Log.e("FmRadioManager", "$methodName EXCEPTION: ${e.message}", e)
             default
+        }
+    }
+
+    fun isServiceAvailable(): Boolean {
+        return try {
+            radio.isOn()
+            true
+        } catch (e: Exception) {
+            Log.e("FmRadioManager", "isServiceAvailable EXCEPTION: ${e.message}", e)
+            false
+        }
+    }
+
+    fun isHeadsetConnected(): Boolean {
+        return safeCall("isHeadsetConnected", false) {
+            radio.isHeadsetPlugged()
         }
     }
 

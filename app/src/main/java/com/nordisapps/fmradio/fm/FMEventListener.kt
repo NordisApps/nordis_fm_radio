@@ -34,4 +34,8 @@ open class FMEventListener : IFMEventListenerStub() {
     override fun onTuned(freq: Long) {
         Log.d("FMTEST", "TUNED: $freq")
     }
+
+    override fun onHeadsetDisconnected() {
+        Log.d("FMTEST", "HEADSET DISCONNECTED")
+    }
 }
