@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -69,7 +70,7 @@ fun SavedStationsSection(
                             Icon(
                                 imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
                                 contentDescription = if (isFavorite) "Убрать из избранного" else "Добавить в избранное",
-                                tint = if (isFavorite) Color(0xFFFFC107) else Color.Unspecified
+                                tint = if (isFavorite) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

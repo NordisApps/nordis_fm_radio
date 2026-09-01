@@ -1,5 +1,6 @@
 package com.nordisapps.fmradio.ui
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -8,6 +9,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import com.nordisapps.fmradio.RadioViewModel
 
+@Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun RadioHomeScreen(viewModel: RadioViewModel) {
     val uiState = viewModel.uiState
@@ -22,8 +24,9 @@ fun RadioHomeScreen(viewModel: RadioViewModel) {
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0)
+    ) {
         RadioPlayerScreen(
             currentFrequency = uiState.currentFrequency,
             stationName = uiState.stationName,

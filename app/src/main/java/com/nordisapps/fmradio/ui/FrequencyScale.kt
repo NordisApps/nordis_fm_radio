@@ -12,8 +12,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import android.graphics.Paint
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -39,10 +39,15 @@ fun FrequencyScale(
     var dragAccumulator by remember { mutableFloatStateOf(0f) }
     var displayFreq by remember { mutableFloatStateOf(currentFrequency) }
 
-    val pointerColor = if (isPlaying) Color(0xFFE0483E) else Color.Gray
-    val labelColor = Color.Gray.toArgb()
+    val colorScheme = MaterialTheme.colorScheme
+    val pointerColor = if (isPlaying) {
+        colorScheme.primary
+    } else {
+        colorScheme.onSurfaceVariant
+    }
+    val labelColor = colorScheme.onSurfaceVariant.toArgb()
     val labelSizePx = with(density) { 12.sp.toPx() }
-    val textPaint = remember {
+    val textPaint = remember(labelColor, labelSizePx) {
         Paint().apply {
             color = labelColor
             textSize = labelSizePx
@@ -95,7 +100,11 @@ fun FrequencyScale(
                 isMid -> 24.dp.toPx()
                 else -> 14.dp.toPx()
             }
-            val tickColor = if (isMajor) Color.Gray else Color.DarkGray
+            val tickColor = if (isMajor) {
+                colorScheme.onSurfaceVariant
+            } else {
+                colorScheme.outlineVariant
+            }
 
             drawLine(
                 color = tickColor,

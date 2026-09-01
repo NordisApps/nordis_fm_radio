@@ -7,9 +7,12 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
+import com.nordisapps.fmradio.ui.NordisFMTheme
 import com.nordisapps.fmradio.ui.RadioApp
 
 class MainActivity : ComponentActivity() {
@@ -28,12 +31,18 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
+
+        enableEdgeToEdge()
 
         requestRuntimePermissions()
 
         setContent {
-            RadioApp(viewModel = viewModel)
+            NordisFMTheme {
+                RadioApp(viewModel = viewModel)
+            }
         }
     }
 
