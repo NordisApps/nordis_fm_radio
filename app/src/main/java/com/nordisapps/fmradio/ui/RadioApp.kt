@@ -9,8 +9,9 @@ fun RadioApp(viewModel: RadioViewModel) {
         favoriteStations = viewModel.uiState.favoriteStations.sorted(),
         onStationSelected = viewModel::tuneToStation,
         onFavoriteToggle = viewModel::toggleFavoriteAndPersist,
-        homeContent = {
-            RadioHomeScreen(viewModel = viewModel)
+        settingsViewModel = viewModel,
+        homeContent = { snackbarHostState ->
+            RadioHomeScreen(viewModel = viewModel, snackbarHostState = snackbarHostState)
         }
     )
 }

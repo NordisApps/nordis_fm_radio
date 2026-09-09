@@ -29,9 +29,13 @@ interface IFMPlayer {
 
     fun setSoftmute(enabled: Boolean)
 
+    fun setMono()
+
     fun getSoftMuteMode(): Boolean
 
     fun isHeadsetPlugged(): Boolean
+
+    fun disableRDS()
 
     fun enableRDS()
 
@@ -44,6 +48,10 @@ interface IFMPlayer {
     fun enableAF()
 
     fun disableAF()
+
+    fun setBand(band: Int)
+
+    fun setChannelSpacing(spacing: Int)
 
     fun setListener(listener: IFMEventListener)
 

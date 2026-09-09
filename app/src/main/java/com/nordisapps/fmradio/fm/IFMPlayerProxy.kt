@@ -34,6 +34,10 @@ class IFMPlayerProxy(
         const val TRANSACTION_DISABLE_AF = 26
         const val TRANSACTION_SET_LISTENER = 1
         const val TRANSACTION_GET_INTEGER_TUNNING_PARAMETER = 51
+        const val TRANSACTION_SET_CHANNEL_SPACING = 28
+        const val TRANSACTION_SET_BAND = 27
+        const val TRANSACTION_DISABLE_RDS = 21
+        const val TRANSACTION_SET_MONO = 35
     }
 
     private inline fun <T> transact(
@@ -94,6 +98,8 @@ class IFMPlayerProxy(
 
     override fun setStereo() = transact(TRANSACTION_SET_STEREO) {}
 
+    override fun setMono() = transact(TRANSACTION_SET_MONO) {}
+
     override fun setSoftmute(enabled: Boolean) = transact(
         TRANSACTION_SET_SOFTMUTE,
         writeArgs = { writeInt(if (enabled) 1 else 0) }
@@ -103,6 +109,8 @@ class IFMPlayerProxy(
 
     override fun isHeadsetPlugged(): Boolean =
         transact(TRANSACTION_IS_HEADSET_PLUGGED) { readInt() != 0 }
+
+    override fun disableRDS() = transact(TRANSACTION_DISABLE_RDS) {}
 
     override fun enableRDS() = transact(TRANSACTION_ENABLE_RDS) {}
 
@@ -115,6 +123,14 @@ class IFMPlayerProxy(
     override fun enableAF() = transact(TRANSACTION_ENABLE_AF) {}
 
     override fun disableAF() = transact(TRANSACTION_DISABLE_AF) {}
+
+    override fun setBand(band: Int) = transact(TRANSACTION_SET_BAND, writeArgs = { writeInt(band) }
+    ) {}
+
+    override fun setChannelSpacing(spacing: Int) = transact(
+        TRANSACTION_SET_CHANNEL_SPACING,
+        writeArgs = { writeInt(spacing) }
+    ) {}
 
     override fun setListener(listener: IFMEventListener) = transact(
         TRANSACTION_SET_LISTENER,

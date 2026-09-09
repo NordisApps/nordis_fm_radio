@@ -75,7 +75,7 @@ class FmRadioManager(context: Context) {
         return IFMPlayerProxy(binder)
     }
 
-    fun play() {
+    fun play(isMonoMode: Boolean = false, isSoftMuteEnabled: Boolean = false, isRdsEnabled: Boolean = true) {
         try {
             val headset = radio.isHeadsetPlugged()
             Log.d("FmRadioManager", "HEADSET = $headset")
@@ -86,13 +86,68 @@ class FmRadioManager(context: Context) {
             val on = radio.on()
             Log.d("FmRadioManager", "RADIO ON = $on")
             radio.setListener(listener)
-            radio.enableRDS()
+            if (isRdsEnabled) radio.enableRDS() else radio.disableRDS()
             radio.disableAF()
-            radio.setStereo()
-            radio.setSoftmute(false)
+            if (isMonoMode) radio.setMono() else radio.setStereo()
+            radio.setSoftmute(isSoftMuteEnabled)
             Log.d("FmRadioManager", "SoftMute = ${radio.getSoftMuteMode()}")
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    fun setChannelSpacing(spacing: Int): Boolean {
+        return try {
+            radio.setChannelSpacing(spacing)
+            Log.d("FmRadioManager", "CHANNEL SPACING = $spacing")
+            true
+        } catch (e: Exception) {
+            Log.e("FmRadioManager", "setChannelSpacing EXCEPTION: ${e.message}", e)
+            false
+        }
+    }
+
+    fun setBand(band: Int): Boolean {
+        return try {
+            radio.setBand(band)
+            Log.d("FmRadioManager", "BAND = $band")
+            true
+        } catch (e: Exception) {
+            Log.e("FmRadioManager", "setBand EXCEPTION: ${e.message}", e)
+            false
+        }
+    }
+
+    fun setRdsEnabled(enabled: Boolean): Boolean {
+        return try {
+            if (enabled) radio.enableRDS() else radio.disableRDS()
+            Log.d("FmRadioManager", "RDS ENABLED = $enabled")
+            true
+        } catch (e: Exception) {
+            Log.e("FmRadioManager", "setRdsEnabled EXCEPTION: ${e.message}", e)
+            false
+        }
+    }
+
+    fun setMonoMode(enabled: Boolean): Boolean {
+        return try {
+            if (enabled) radio.setMono() else radio.setStereo()
+            Log.d("FmRadioManager", "MONO MODE = $enabled")
+            true
+        } catch (e: Exception) {
+            Log.e("FmRadioManager", "setMonoMode EXCEPTION: ${e.message}", e)
+            false
+        }
+    }
+
+    fun setSoftMuteEnabled(enabled: Boolean): Boolean {
+        return try {
+            radio.setSoftmute(enabled)
+            Log.d("FmRadioManager", "SOFT MUTE = $enabled")
+            true
+        } catch (e: Exception) {
+            Log.e("FmRadioManager", "setSoftMuteEnabled EXCEPTION: ${e.message}", e)
+            false
         }
     }
 

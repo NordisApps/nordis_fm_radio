@@ -23,13 +23,15 @@ import kotlin.math.roundToInt
 @Composable
 fun FrequencyDisplay(
     currentFrequency: String,
+    frequencyBand: FrequencyBand,
+    tuningStep: TuningStep,
     onFrequencyConfirmed: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
     Text(
-        text = if (currentFrequency.isBlank()) "87.5 MHz" else "$currentFrequency MHz",
+        text = if (currentFrequency.isBlank()) "${frequencyBand.minMhz} MHz" else "$currentFrequency MHz",
         fontSize = 56.sp,
         fontWeight = FontWeight.Bold,
         modifier = modifier
@@ -43,6 +45,8 @@ fun FrequencyDisplay(
     if (showDialog) {
         FrequencyInputDialog(
             initialValue = currentFrequency,
+            frequencyBand = frequencyBand,
+            tuningStep = tuningStep,
             onDismiss = { showDialog = false },
             onConfirm = { newFreq ->
                 onFrequencyConfirmed(newFreq)
@@ -55,12 +59,17 @@ fun FrequencyDisplay(
 @Composable
 private fun FrequencyInputDialog(
     initialValue: String,
+    frequencyBand: FrequencyBand,
+    tuningStep: TuningStep,
     onDismiss: () -> Unit,
     onConfirm: (Double) -> Unit
 ) {
     var text by remember { mutableStateOf(initialValue) }
     val value = text.toDoubleOrNull()
-    val isValid = value != null && value in 87.5..108.0
+    val range = frequencyBand.minMhz.toDouble()..frequencyBand.maxMhz.toDouble()
+    val isValid = value != null && value in range
+    val stepsPerMhz = (1f / tuningStep.stepMhz).roundToInt()
+    val maxDecimalDigits = if (tuningStep.stepMhz < 0.1f) 2 else 1
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -75,15 +84,21 @@ private fun FrequencyInputDialog(
                     val parts = filtered.split(".")
                     text = when (parts.size) {
                         1 -> parts[0].take(3)
-                        2 -> parts[0].take(3) + "." + parts[1].take(2)
+                        2 -> parts[0].take(3) + "." + parts[1].take(maxDecimalDigits)
                         else -> filtered
                     }
                 },
-                label = { Text("87.5 – 108.0, шаг 0.05") },
+                label = {
+                    Text(
+                        "${frequencyBand.minMhz} - ${frequencyBand.maxMhz}, шаг ${tuningStep.stepMhz}"
+                    )
+                        },
                 isError = text.isNotEmpty() && !isValid,
                 supportingText = {
                     if (text.isNotEmpty() && !isValid) {
-                        Text("Введите значение от 87.5 до 108.0 с шагом 0.05")
+                        Text(
+                            "Введите значение от ${frequencyBand.minMhz} до ${frequencyBand.maxMhz}"
+                        )
                     }
                 },
                 keyboardOptions = KeyboardOptions(
@@ -95,7 +110,7 @@ private fun FrequencyInputDialog(
             TextButton(
                 onClick = {
                     value?.let {
-                        val rounded = (it * 20).roundToInt() / 20.0
+                        val rounded = (it * stepsPerMhz).roundToInt() / stepsPerMhz.toDouble()
                         onConfirm(rounded)
                     }
                 },

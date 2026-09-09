@@ -21,7 +21,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 @Composable
@@ -31,9 +31,9 @@ fun FrequencyScale(
     onFrequencyChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
     minFreq: Float = 87.5f,
-    maxFreq: Float = 108.0f
+    maxFreq: Float = 108.0f,
+    step: Float = 0.05f
 ) {
-    val step = 0.05f
     val density = LocalDensity.current
     val pxPerStep = with(density) { 10.dp.toPx() }
     var dragAccumulator by remember { mutableFloatStateOf(0f) }
@@ -60,11 +60,15 @@ fun FrequencyScale(
         displayFreq = currentFrequency
     }
 
+    LaunchedEffect(minFreq, maxFreq) {
+        displayFreq = displayFreq.coerceIn(minFreq, maxFreq)
+    }
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .height(80.dp)
-            .pointerInput(isPlaying) {
+            .pointerInput(isPlaying, step, minFreq, maxFreq) {
                 if (!isPlaying) return@pointerInput
                 detectHorizontalDragGestures(
                     onDragStart = { dragAccumulator = 0f },
@@ -76,7 +80,8 @@ fun FrequencyScale(
                         if (stepsMoved != 0) {
                             val newFreq = (displayFreq - stepsMoved * step)
                                 .coerceIn(minFreq, maxFreq)
-                            displayFreq = (newFreq * 20).roundToInt() / 20f
+                            val stepsFromMin = ((newFreq - minFreq) / step).roundToInt()
+                            displayFreq = minFreq + stepsFromMin * step
                             dragAccumulator -= stepsMoved * pxPerStep
                         }
                     }
@@ -85,16 +90,19 @@ fun FrequencyScale(
     ) {
         val centerX = size.width / 2f
         val tickAreaHeight = 64.dp.toPx()
-        val totalSteps = ((maxFreq - minFreq) / step).toInt()
+        val totalSteps = ((maxFreq - minFreq) / step).roundToInt()
         val offsetSteps = ((displayFreq - minFreq) / step)
+        val majorEveryNSteps = (1f / step).roundToInt().coerceAtLeast(1)
+        val firstWholeMhz = ceil(minFreq).toInt()
+        val offsetToFirstMajor = ((firstWholeMhz - minFreq) / step).roundToInt()
+        val midEveryNSteps = (majorEveryNSteps / 2).coerceAtLeast(1)
 
         for (i in 0..totalSteps) {
-            val freq = minFreq + i * step
             val x = centerX + (i - offsetSteps) * pxPerStep
             if (x < -pxPerStep || x > size.width + pxPerStep) continue
 
-            val isMajor = abs(freq - freq.roundToInt()) < (step / 2)
-            val isMid = abs((freq * 4) - (freq * 4).roundToInt()) < (step * 4 / 2) && !isMajor
+            val isMajor = i >= offsetToFirstMajor && (i - offsetToFirstMajor) % majorEveryNSteps == 0
+            val isMid = !isMajor && i % midEveryNSteps == 0
             val tickHeight = when {
                 isMajor -> 36.dp.toPx()
                 isMid -> 24.dp.toPx()
@@ -114,9 +122,10 @@ fun FrequencyScale(
             )
 
             if (isMajor) {
+                val wholeMhz = firstWholeMhz + (i - offsetToFirstMajor) / majorEveryNSteps
                 drawIntoCanvas { canvas ->
                     canvas.nativeCanvas.drawText(
-                        freq.roundToInt().toString(),
+                        wholeMhz.toString(),
                         x,
                         tickAreaHeight + labelSizePx,
                         textPaint

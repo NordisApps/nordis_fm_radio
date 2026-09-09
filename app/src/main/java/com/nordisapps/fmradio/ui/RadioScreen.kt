@@ -1,6 +1,5 @@
 package com.nordisapps.fmradio.ui
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,8 +34,6 @@ fun RadioPlayerScreen(
     stationName: String,
     radioText: String,
     isPlaying: Boolean,
-    isScanning: Boolean,
-    isSpeakerOn: Boolean,
     scannedStations: List<Double>,
     savedStations: List<Double>,
     favoriteStations: Set<Double>,
@@ -44,84 +41,61 @@ fun RadioPlayerScreen(
     isRecording: Boolean,
     isRecordingPaused: Boolean,
     recordingTime: String,
+    tuningStep: TuningStep,
+    frequencyBand: FrequencyBand,
     onScaleFrequencyChange: (Double) -> Unit,
     onSeekUpClick: () -> Unit,
     onSeekDownClick: () -> Unit,
-    onPowerClick: () -> Unit,
-    onSpeakerClick: () -> Unit,
-    onScanClick: () -> Unit,
     onConfirmScannedStations: () -> Unit,
     onSavedStationSelected: (Double) -> Unit,
-    onFavoriteToggle: (Double) -> Unit,
-    onRecordClick: () -> Unit,
-    onRecordPauseClick: () -> Unit,
-    onRecordStopClick: () -> Unit,
-    onRecordCancelClick: () -> Unit
+    onFavoriteToggle: (Double) -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        PlaybackControlsRow(
-            isPlaying = isPlaying,
-            isRecording = isRecording,
-            isRecordingPaused = isRecordingPaused,
-            onPowerClick = onPowerClick,
-            onRecordClick = onRecordClick,
-            onRecordPauseClick = onRecordPauseClick,
-            onRecordStopClick = onRecordStopClick,
-            onRecordCancelClick = onRecordCancelClick,
-            modifier = Modifier.align(Alignment.TopStart).padding(16.dp)
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 16.dp, end = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
 
-        ScanSpeakerRow(
-            isPlaying = isPlaying,
-            isScanning = isScanning,
-            isSpeakerOn = isSpeakerOn,
-            onScanClick = onScanClick,
-            onSpeakerClick = onSpeakerClick,
-            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 16.dp, end = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(96.dp))
-
-            if (isRecording) {
-                RecordingStatusText(
-                    isRecordingPaused = isRecordingPaused,
-                    recordingTime = recordingTime,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-            }
-
-            FrequencyTuningRow(
-                currentFrequency = currentFrequency,
-                isPlaying = isPlaying,
-                onSeekDownClick = onSeekDownClick,
-                onSeekUpClick = onSeekUpClick,
-                onFrequencyConfirmed = onScaleFrequencyChange
-            )
-
-            Text(text = stationName)
-            Text(text = radioText, modifier = Modifier.padding(bottom = 12.dp))
-
-            FrequencyScale(
-                currentFrequency = currentFrequency.toFloatOrNull() ?: 87.5f,
-                isPlaying = isPlaying,
-                onFrequencyChange = { onScaleFrequencyChange(it.toDouble()) },
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-
-            SavedStationsSection(
-                stations = savedStations,
-                favoriteStations = favoriteStations,
-                onStationSelected = onSavedStationSelected,
-                onFavoriteToggle = onFavoriteToggle,
-                modifier = Modifier.weight(1f)
+        if (isRecording) {
+            RecordingStatusText(
+                isRecordingPaused = isRecordingPaused,
+                recordingTime = recordingTime,
+                modifier = Modifier.padding(bottom = 12.dp)
             )
         }
+
+        FrequencyTuningRow(
+            currentFrequency = currentFrequency,
+            frequencyBand = frequencyBand,
+            tuningStep = tuningStep,
+            isPlaying = isPlaying,
+            onSeekDownClick = onSeekDownClick,
+            onSeekUpClick = onSeekUpClick,
+            onFrequencyConfirmed = onScaleFrequencyChange
+        )
+
+        Text(text = stationName)
+        Text(text = radioText, modifier = Modifier.padding(bottom = 12.dp))
+
+        FrequencyScale(
+            currentFrequency = currentFrequency.toFloatOrNull() ?: 87.5f,
+            isPlaying = isPlaying,
+            onFrequencyChange = { onScaleFrequencyChange(it.toDouble()) },
+            minFreq = frequencyBand.minMhz,
+            maxFreq = frequencyBand.maxMhz,
+            step = tuningStep.stepMhz,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        SavedStationsSection(
+            stations = savedStations,
+            favoriteStations = favoriteStations,
+            onStationSelected = onSavedStationSelected,
+            onFavoriteToggle = onFavoriteToggle,
+            modifier = Modifier.weight(1f)
+        )
     }
 
     if (showScannedStations) {
@@ -130,7 +104,7 @@ fun RadioPlayerScreen(
 }
 
 @Composable
-private fun PlaybackControlsRow(
+fun PlaybackControlsRow(
     isPlaying: Boolean,
     isRecording: Boolean,
     isRecordingPaused: Boolean,
@@ -155,7 +129,7 @@ private fun PlaybackControlsRow(
                     tint = if (isPlaying) {
                         colorScheme.error
                     } else {
-                        colorScheme.onSurfaceVariant
+                        colorScheme.onSurface.copy(alpha = 0.38f)
                     },
                     contentDescription = "Запись"
                 )
@@ -182,7 +156,7 @@ private fun PlaybackControlsRow(
 }
 
 @Composable
-private fun ScanSpeakerRow(
+fun ScanSpeakerRow(
     isPlaying: Boolean,
     isScanning: Boolean,
     isSpeakerOn: Boolean,
@@ -211,6 +185,8 @@ private fun ScanSpeakerRow(
 @Composable
 private fun FrequencyTuningRow(
     currentFrequency: String,
+    frequencyBand: FrequencyBand,
+    tuningStep: TuningStep,
     isPlaying: Boolean,
     onSeekDownClick: () -> Unit,
     onSeekUpClick: () -> Unit,
@@ -223,6 +199,8 @@ private fun FrequencyTuningRow(
 
         FrequencyDisplay(
             currentFrequency = currentFrequency,
+            frequencyBand = frequencyBand,
+            tuningStep = tuningStep,
             onFrequencyConfirmed = onFrequencyConfirmed
         )
 
