@@ -14,7 +14,7 @@ Custom FM radio app for Android, built around hardware FM tuner access on differ
 - Settings: band, channel spacing, RDS on/off, mono mode on/off, soft-mute on/off
 - Favorite stations
 
-📱 Supported Devices
+## 📱 Supported Devices
 
 Currently supported:
 
