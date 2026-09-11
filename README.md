@@ -21,7 +21,8 @@ Currently supported:
 - Samsung Galaxy A10s
 - Samsung Galaxy M30s
 
-Other Samsung phones may work, but compatibility is not guaranteed
+Other Samsung phones may work, but compatibility is not guaranteed.
+
 Support for additional devices is planned.
 
 ## 📝License
