@@ -30,6 +30,7 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsDataStore by lazy { SettingsDataStore(getApplication()) }
     private var recordingTimerJob: Job? = null
     private var recordingSeconds = 0
+    private var tuneDebounceJob: Job? = null
     var uiState by mutableStateOf(RadioUiState())
         private set
 
@@ -96,6 +97,13 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
                 uiState = uiState.copy(readinessMessage = "Наушники отключены — радио остановлено")
             }
         }
+
+        RadioServiceEvents.onStoppedExternally = {
+            viewModelScope.launch(Dispatchers.Main) {
+                updatePlaying(false)
+                clearRds()
+            }
+        }
     }
 
     private fun loadPersistedStations() {
@@ -123,8 +131,13 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
         context.startForegroundService(serviceIntent)
     }
 
-    private fun applyTune(tuneAction: suspend () -> Double) {
-        viewModelScope.launch {
+    private fun applyTune(targetFrequency: Double, tuneAction: suspend () -> Double) {
+        updateCurrentFrequency(targetFrequency.toString())
+        clearRds()
+
+        tuneDebounceJob?.cancel()
+        tuneDebounceJob = viewModelScope.launch {
+            delay(300.milliseconds)
             val tuned = withContext(Dispatchers.IO) { tuneAction() }
             updateCurrentFrequency(tuned.toString())
             if (uiState.isPlaying) startRadioService(tuned)
@@ -262,19 +275,29 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun tuneToStation(frequency: Double) {
-        applyTune { radioManager.tuneSafe(frequency) }
+        applyTune(targetFrequency = frequency) { radioManager.tuneSafe(frequency) }
     }
 
     fun seekDown() {
-        applyTune { radioManager.seekDown() }
+        viewModelScope.launch {
+            val tuned = withContext(Dispatchers.IO) { radioManager.seekDown() }
+            updateCurrentFrequency(tuned.toString())
+            if (uiState.isPlaying) startRadioService(tuned)
+            settingsDataStore.saveLastFrequency(tuned)
+        }
     }
 
     fun seekUp() {
-        applyTune { radioManager.seekUp() }
+        viewModelScope.launch {
+            val tuned = withContext(Dispatchers.IO) { radioManager.seekUp() }
+            updateCurrentFrequency(tuned.toString())
+            if (uiState.isPlaying) startRadioService(tuned)
+            settingsDataStore.saveLastFrequency(tuned)
+        }
     }
 
     fun onScaleFrequencyChange(newFrequency: Double) {
-        applyTune { radioManager.tuneSafe(newFrequency) }
+        applyTune(targetFrequency = newFrequency) { radioManager.tuneSafe(newFrequency) }
     }
 
     fun togglePower() {
@@ -293,7 +316,8 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
                     uiState = uiState.copy(readinessMessage = message)
                     return@launch
                 }
-                val frequency = uiState.currentFrequency.toDoubleOrNull() ?: uiState.frequencyBand.minMhz.toDouble()
+                val frequency = uiState.currentFrequency.toDoubleOrNull()
+                    ?: uiState.frequencyBand.minMhz.toDouble()
                 val tuned = withContext(Dispatchers.IO) {
                     radioManager.play(
                         isMonoMode = uiState.isMonoMode,
@@ -435,6 +459,7 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
             radioManager.onStationNameReceived = null
             radioManager.onRadioTextReceived = null
             radioManager.onRdsCleared = null
+            RadioServiceEvents.onStoppedExternally = null
             if (fmRadioRecorder.isRecording) {
                 fmRadioRecorder.stopRecording(getApplication())
             }

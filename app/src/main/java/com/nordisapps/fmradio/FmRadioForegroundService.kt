@@ -35,6 +35,7 @@ class FmRadioForegroundService : Service() {
             } catch (e: Exception) {
                 Log.e("FMTEST", "Stop failed: ${e.message}", e)
             }
+            RadioServiceEvents.onStoppedExternally?.invoke()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -53,6 +54,7 @@ class FmRadioForegroundService : Service() {
         } catch (e: Exception) {
             Log.e("FMTEST", "Cleanup failed: ${e.message}", e)
         }
+        RadioServiceEvents.onStoppedExternally?.invoke()
         stopSelf()
     }
 
