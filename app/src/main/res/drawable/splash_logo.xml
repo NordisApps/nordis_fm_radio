@@ -1,7 +1,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item android:drawable="@drawable/ic_launcher_background" />
+    <item android:drawable="@drawable/background" />
 
-    <item android:drawable="@drawable/ic_launcher_foreground" />
+    <item android:drawable="@drawable/foreground" />
 
 </layer-list>
