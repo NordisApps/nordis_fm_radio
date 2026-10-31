@@ -3,9 +3,9 @@
 Custom FM radio app for Android, built around hardware FM tuner access on different devices
 
 <p align="center">
-  <img src="docs/screenshots/s3.png" width="30%" alt="Main screen">
+  <img src="docs/screenshots/s1.png" width="30%" alt="Main screen">
   <img src="docs/screenshots/s2.png" width="30%" alt="Favorites">
-  <img src="docs/screenshots/s1.png" width="30%" alt="Settings">
+  <img src="docs/screenshots/s3.png" width="30%" alt="Settings">
 </p>
 
 <p align="center">
