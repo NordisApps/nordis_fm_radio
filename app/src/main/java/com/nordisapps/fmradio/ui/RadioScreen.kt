@@ -80,9 +80,9 @@ fun RadioPlayerScreen(
         Text(text = radioText, modifier = Modifier.padding(bottom = 12.dp))
 
         FrequencyScale(
-            currentFrequency = currentFrequency.toFloatOrNull() ?: 87.5f,
+            currentFrequency = currentFrequency.toDoubleOrNull() ?: 87.5,
             isPlaying = isPlaying,
-            onFrequencyChange = { onScaleFrequencyChange(it.toDouble()) },
+            onFrequencyChange = { onScaleFrequencyChange(it) },
             minFreq = frequencyBand.minMhz,
             maxFreq = frequencyBand.maxMhz,
             step = tuningStep.stepMhz,

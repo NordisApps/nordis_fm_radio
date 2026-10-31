@@ -163,14 +163,14 @@ private fun <T> SettingsDropdownRow(
     )
 }
 
-enum class TuningStep(val label: String, val stepMhz: Float) {
-    STEP_50_KHZ("50 кГц", 0.05f),
-    STEP_100_KHZ("100 кГц", 0.1f),
-    STEP_200_KHZ("200 кГц", 0.2f)
+enum class TuningStep(val label: String, val stepMhz: Double) {
+    STEP_50_KHZ("50 кГц", 0.05),
+    STEP_100_KHZ("100 кГц", 0.1),
+    STEP_200_KHZ("200 кГц", 0.2)
 }
 
-enum class FrequencyBand(val label: String, val minMhz: Float, val maxMhz: Float) {
-    STANDARD("87.5-108 МГц", 87.5f, 108.0f),
-    JAPAN("76-90 МГц", 76.0f, 90.0f),
-    JAPAN_EXTENDED("76-108 МГц", 76.0f, 108.0f)
+enum class FrequencyBand(val label: String, val minMhz: Double, val maxMhz: Double) {
+    STANDARD("87.5-108 МГц", 87.5, 108.0),
+    JAPAN("76-90 МГц", 76.0, 90.0),
+    JAPAN_EXTENDED("76-108 МГц", 76.0, 108.0)
 }

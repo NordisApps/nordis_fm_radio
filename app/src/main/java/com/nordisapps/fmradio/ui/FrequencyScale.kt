@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import android.graphics.Paint
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -21,23 +22,27 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nordisapps.FrequencyGrid
 import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 @Composable
 fun FrequencyScale(
-    currentFrequency: Float,
+    currentFrequency: Double,
     isPlaying: Boolean,
-    onFrequencyChange: (Float) -> Unit,
+    onFrequencyChange: (Double) -> Unit,
     modifier: Modifier = Modifier,
-    minFreq: Float = 87.5f,
-    maxFreq: Float = 108.0f,
-    step: Float = 0.05f
+    minFreq: Double = 87.5,
+    maxFreq: Double = 108.0,
+    step: Double = 0.05
 ) {
     val density = LocalDensity.current
     val pxPerStep = with(density) { 10.dp.toPx() }
     var dragAccumulator by remember { mutableFloatStateOf(0f) }
-    var displayFreq by remember { mutableFloatStateOf(currentFrequency) }
+    var dragStartFreq by remember { mutableDoubleStateOf(0.0) }
+    var displayFreq by remember { mutableDoubleStateOf(currentFrequency) }
+    val gridStart = remember(minFreq, step) { FrequencyGrid.start(minFreq, step) }
 
     val colorScheme = MaterialTheme.colorScheme
     val pointerColor = if (isPlaying) {
@@ -60,8 +65,8 @@ fun FrequencyScale(
         displayFreq = currentFrequency
     }
 
-    LaunchedEffect(minFreq, maxFreq) {
-        displayFreq = displayFreq.coerceIn(minFreq, maxFreq)
+    LaunchedEffect(gridStart, maxFreq) {
+        displayFreq = displayFreq.coerceIn(gridStart, maxFreq)
     }
 
     Canvas(
@@ -71,37 +76,36 @@ fun FrequencyScale(
             .pointerInput(isPlaying, step, minFreq, maxFreq) {
                 if (!isPlaying) return@pointerInput
                 detectHorizontalDragGestures(
-                    onDragStart = { dragAccumulator = 0f },
-                    onDragEnd = { onFrequencyChange(displayFreq) },
+                    onDragStart = {
+                        dragAccumulator = 0f
+                        dragStartFreq = displayFreq
+                    },
                     onHorizontalDrag = { change, dragAmount ->
                         change.consume()
                         dragAccumulator += dragAmount
-                        val stepsMoved = (dragAccumulator / pxPerStep).toInt()
-                        if (stepsMoved != 0) {
-                            val newFreq = (displayFreq - stepsMoved * step)
-                                .coerceIn(minFreq, maxFreq)
-                            val stepsFromMin = ((newFreq - minFreq) / step).roundToInt()
-                            displayFreq = minFreq + stepsFromMin * step
-                            dragAccumulator -= stepsMoved * pxPerStep
-                        }
+                        val stepsMoved = (dragAccumulator / pxPerStep).roundToInt()
+                        val rawFreq = dragStartFreq - stepsMoved * step
+                        displayFreq = FrequencyGrid.snap(rawFreq, minFreq, maxFreq, step)
+                        onFrequencyChange(displayFreq)
                     }
                 )
             }
     ) {
         val centerX = size.width / 2f
         val tickAreaHeight = 64.dp.toPx()
-        val totalSteps = ((maxFreq - minFreq) / step).roundToInt()
-        val offsetSteps = ((displayFreq - minFreq) / step)
-        val majorEveryNSteps = (1f / step).roundToInt().coerceAtLeast(1)
-        val firstWholeMhz = ceil(minFreq).toInt()
-        val offsetToFirstMajor = ((firstWholeMhz - minFreq) / step).roundToInt()
+        val totalSteps = floor((maxFreq - gridStart) / step + 1e-9).toInt()
+        val offsetSteps = (displayFreq - gridStart) / step
+        val majorEveryNSteps = (1.0 / step).roundToInt().coerceAtLeast(1)
+        val firstWholeMhz = ceil(gridStart - 1e-9).toInt()
+        val offsetToFirstMajor = ((firstWholeMhz - gridStart) / step).roundToInt()
         val midEveryNSteps = (majorEveryNSteps / 2).coerceAtLeast(1)
 
         for (i in 0..totalSteps) {
-            val x = centerX + (i - offsetSteps) * pxPerStep
+            val x = (centerX + (i - offsetSteps) * pxPerStep).toFloat()
             if (x < -pxPerStep || x > size.width + pxPerStep) continue
 
-            val isMajor = i >= offsetToFirstMajor && (i - offsetToFirstMajor) % majorEveryNSteps == 0
+            val isMajor =
+                i >= offsetToFirstMajor && (i - offsetToFirstMajor) % majorEveryNSteps == 0
             val isMid = !isMajor && i % midEveryNSteps == 0
             val tickHeight = when {
                 isMajor -> 36.dp.toPx()

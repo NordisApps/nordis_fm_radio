@@ -66,7 +66,7 @@ private fun FrequencyInputDialog(
 ) {
     var text by remember { mutableStateOf(initialValue) }
     val value = text.toDoubleOrNull()
-    val range = frequencyBand.minMhz.toDouble()..frequencyBand.maxMhz.toDouble()
+    val range = frequencyBand.minMhz..frequencyBand.maxMhz
     val isValid = value != null && value in range
     val stepsPerMhz = (1f / tuningStep.stepMhz).roundToInt()
     val maxDecimalDigits = if (tuningStep.stepMhz < 0.1f) 2 else 1
