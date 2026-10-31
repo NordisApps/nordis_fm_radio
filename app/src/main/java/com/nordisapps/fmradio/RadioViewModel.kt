@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.nordisapps.FrequencyGrid
 import com.nordisapps.fmradio.data.FavoriteStationsDataStore
 import com.nordisapps.fmradio.data.SettingsDataStore
 import com.nordisapps.fmradio.data.StationsDataStore
@@ -19,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
 class RadioViewModel(application: Application) : AndroidViewModel(application) {
@@ -58,6 +60,8 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
     fun clearReadinessMessage() {
         uiState = uiState.copy(readinessMessage = null)
     }
+
+    private fun formatFrequency(freq: Double): String = String.format(Locale.US,"%.2f", freq)
 
     private fun setupRadioCallbacks() {
         radioManager.onStationNameReceived = { updateStationName(it) }
@@ -118,8 +122,9 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
                 isRdsEnabled = settings.isRdsEnabled,
                 isMonoMode = settings.isMonoMode,
                 isSoftMuteEnabled = settings.isSoftMuteEnabled,
-                currentFrequency = settings.lastFrequency.toString()
+                currentFrequency = formatFrequency(settings.lastFrequency)
             )
+            updateCurrentFrequency(formatFrequency(snap(settings.lastFrequency)))
         }
     }
 
@@ -131,15 +136,27 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
         context.startForegroundService(serviceIntent)
     }
 
-    private fun applyTune(targetFrequency: Double, tuneAction: suspend () -> Double) {
-        updateCurrentFrequency(targetFrequency.toString())
+    private fun stepMhz() = when (uiState.tuningStep) {
+        TuningStep.STEP_50_KHZ -> 0.05
+        TuningStep.STEP_100_KHZ -> 0.1
+        TuningStep.STEP_200_KHZ -> 0.2
+    }
+
+    private fun snap(freq: Double): Double {
+        val band = uiState.frequencyBand
+        return FrequencyGrid.snap(freq, band.minMhz, band.maxMhz, stepMhz())
+    }
+
+    private fun applyTune(target: Double, tuneAction: suspend (Double) -> Double) {
+        val snapped = snap(target)
+        updateCurrentFrequency(formatFrequency(snapped))
         clearRds()
 
         tuneDebounceJob?.cancel()
         tuneDebounceJob = viewModelScope.launch {
             delay(300.milliseconds)
-            val tuned = withContext(Dispatchers.IO) { tuneAction() }
-            updateCurrentFrequency(tuned.toString())
+            val tuned = withContext(Dispatchers.IO) { tuneAction(snapped) }
+            updateCurrentFrequency(formatFrequency(tuned))
             if (uiState.isPlaying) startRadioService(tuned)
             settingsDataStore.saveLastFrequency(tuned)
         }
@@ -275,13 +292,13 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun tuneToStation(frequency: Double) {
-        applyTune(targetFrequency = frequency) { radioManager.tuneSafe(frequency) }
+        applyTune(frequency) { radioManager.tuneSafe(it) }
     }
 
     fun seekDown() {
         viewModelScope.launch {
             val tuned = withContext(Dispatchers.IO) { radioManager.seekDown() }
-            updateCurrentFrequency(tuned.toString())
+            updateCurrentFrequency(formatFrequency(tuned))
             if (uiState.isPlaying) startRadioService(tuned)
             settingsDataStore.saveLastFrequency(tuned)
         }
@@ -290,14 +307,14 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
     fun seekUp() {
         viewModelScope.launch {
             val tuned = withContext(Dispatchers.IO) { radioManager.seekUp() }
-            updateCurrentFrequency(tuned.toString())
+            updateCurrentFrequency(formatFrequency(tuned))
             if (uiState.isPlaying) startRadioService(tuned)
             settingsDataStore.saveLastFrequency(tuned)
         }
     }
 
     fun onScaleFrequencyChange(newFrequency: Double) {
-        applyTune(targetFrequency = newFrequency) { radioManager.tuneSafe(newFrequency) }
+        applyTune(newFrequency) { radioManager.tuneSafe(it) }
     }
 
     fun togglePower() {
@@ -316,8 +333,9 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
                     uiState = uiState.copy(readinessMessage = message)
                     return@launch
                 }
-                val frequency = uiState.currentFrequency.toDoubleOrNull()
-                    ?: uiState.frequencyBand.minMhz.toDouble()
+                val frequency = snap(
+                    uiState.currentFrequency.toDoubleOrNull() ?: uiState.frequencyBand.minMhz
+                )
                 val tuned = withContext(Dispatchers.IO) {
                     radioManager.play(
                         isMonoMode = uiState.isMonoMode,
@@ -326,7 +344,7 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
                     )
                     radioManager.tuneSafe(frequency)
                 }
-                updateCurrentFrequency(tuned.toString())
+                updateCurrentFrequency(formatFrequency(tuned))
                 updatePlaying(true)
                 startRadioService(tuned)
                 settingsDataStore.saveLastFrequency(tuned)
@@ -374,6 +392,12 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
             withContext(Dispatchers.IO) { radioManager.setChannelSpacing(spacingCode) }
             uiState = uiState.copy(tuningStep = step)
             settingsDataStore.saveTuningStep(step)
+
+            val current = uiState.currentFrequency.toDoubleOrNull() ?: uiState.frequencyBand.minMhz
+            val tuned = withContext(Dispatchers.IO) { radioManager.tuneSafe(snap(current)) }
+            updateCurrentFrequency(formatFrequency(tuned))
+            if (uiState.isPlaying) startRadioService(tuned)
+            settingsDataStore.saveLastFrequency(tuned)
         }
     }
 
@@ -388,9 +412,9 @@ class RadioViewModel(application: Application) : AndroidViewModel(application) {
             uiState = uiState.copy(frequencyBand = band)
             settingsDataStore.saveFrequencyBand(band)
 
-            val minFrequency = band.minMhz.toDouble()
+            val minFrequency = FrequencyGrid.start(band.minMhz, stepMhz())
             val tuned = withContext(Dispatchers.IO) { radioManager.tuneSafe(minFrequency) }
-            updateCurrentFrequency(tuned.toString())
+            updateCurrentFrequency(formatFrequency(tuned))
             if (uiState.isPlaying) startRadioService(tuned)
             settingsDataStore.saveLastFrequency(tuned)
         }
